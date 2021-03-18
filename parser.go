@@ -73,8 +73,6 @@ func Parse(r io.Reader) (email Email, err error) {
 		}
 
 		email.HTMLBody = strings.TrimSuffix(string(message[:]), "\n")
-	case contentTypeOctetStream:
-		email.Attachments, err = parseAttachmentOnlyEmail(msg.Body, msg.Header)
 	default:
 		email.Content, err = decodeContent(msg.Body, msg.Header.Get("Content-Transfer-Encoding"))
 	}
@@ -306,7 +304,7 @@ func parseMultipartMixed(msg io.Reader, boundary string) (textBody, htmlBody str
 			return textBody, htmlBody, attachments, embeddedFiles, err
 		}
 
-		if isAttachment(part) {
+		if isAttachment(part) || part.Header.Get("Content-Disposition") == "attachment" {
 			at, err := decodeAttachment(part)
 			if err != nil {
 				return textBody, htmlBody, attachments, embeddedFiles, err
@@ -338,6 +336,8 @@ func parseMultipartMixed(msg io.Reader, boundary string) (textBody, htmlBody str
 			}
 
 			htmlBody += strings.TrimSuffix(string(ppContent[:]), "\n")
+		} else if contentType == contentTypeOctetStream {
+			return textBody, htmlBody, attachments, embeddedFiles, nil
 		} else {
 			return textBody, htmlBody, attachments, embeddedFiles, fmt.Errorf("Unknown multipart/mixed nested mime type: %s", contentType)
 		}
