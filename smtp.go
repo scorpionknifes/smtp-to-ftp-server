@@ -2,6 +2,7 @@ package main
 
 import (
 	"io"
+	"log"
 	"strings"
 	"time"
 
@@ -46,6 +47,7 @@ func (s *Session) Rcpt(to string) error {
 func (s *Session) Data(r io.Reader) error {
 	email, err := Parse(r) // returns Email struct and error
 	if err != nil {
+		log.Println(err)
 		return err
 	}
 
@@ -58,9 +60,12 @@ func (s *Session) Data(r io.Reader) error {
 	for _, a := range email.Attachments {
 		err := s.ftpClient.Store(currentTime+"_"+a.Filename, a.Data)
 		if err != nil {
+			log.Println(err)
 			return err
 		}
 	}
+
+	log.Println("Success")
 
 	return nil
 }
